@@ -40,14 +40,8 @@ internal sealed class WorktreeTitleMonitor
         WorktreeTitleSnapshot next = WorktreeTitleResolver.Resolve(projectRoot, codexHome);
         if (!next.SessionIndexReadSucceeded)
         {
-            bool fallbackDisplayChanged = !string.Equals(
-                Current.DisplayText,
-                next.DisplayText,
-                StringComparison.Ordinal
-            );
-            Current = next;
             hasProcessedStamp = false;
-            return fallbackDisplayChanged;
+            return SetCurrent(next);
         }
 
         if (
@@ -61,15 +55,20 @@ internal sealed class WorktreeTitleMonitor
             return false;
         }
 
+        bool displayChanged = SetCurrent(next);
+        processedStamp = resolvedStamp;
+        hasProcessedStamp = true;
+        return displayChanged;
+    }
+
+    private bool SetCurrent(WorktreeTitleSnapshot next)
+    {
         bool displayChanged = !string.Equals(
             Current.DisplayText,
             next.DisplayText,
             StringComparison.Ordinal
         );
-
         Current = next;
-        processedStamp = resolvedStamp;
-        hasProcessedStamp = true;
         return displayChanged;
     }
 }

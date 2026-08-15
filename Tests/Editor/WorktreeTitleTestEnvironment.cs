@@ -38,7 +38,7 @@ internal sealed class WorktreeTitleTestEnvironment : IDisposable
     )
     {
         string projectRoot = Path.Combine(RootPath, folderName);
-        return CreateLinkedWorktree(projectRoot, folderName, useRelativeGitDirectory, true);
+        return CreateLinkedWorktree(projectRoot, folderName, useRelativeGitDirectory);
     }
 
     public LinkedWorktreeFixture CreateCodexLinkedWorktree(
@@ -47,12 +47,7 @@ internal sealed class WorktreeTitleTestEnvironment : IDisposable
     )
     {
         string projectRoot = Path.Combine(CodexHome, "worktrees", worktreeId, "SampleProject");
-        return CreateLinkedWorktree(
-            projectRoot,
-            $"codex-{worktreeId}",
-            useRelativeGitDirectory,
-            true
-        );
+        return CreateLinkedWorktree(projectRoot, $"codex-{worktreeId}", useRelativeGitDirectory);
     }
 
     public string CreateCheckoutWithSeparateGitDirectory(string folderName)
@@ -94,8 +89,7 @@ internal sealed class WorktreeTitleTestEnvironment : IDisposable
     private LinkedWorktreeFixture CreateLinkedWorktree(
         string projectRoot,
         string metadataName,
-        bool useRelativeGitDirectory,
-        bool includeCommonDirectory
+        bool useRelativeGitDirectory
     )
     {
         string commonGitDirectory = Path.Combine(RootPath, "repository", ".git");
@@ -103,14 +97,8 @@ internal sealed class WorktreeTitleTestEnvironment : IDisposable
         Directory.CreateDirectory(projectRoot);
         Directory.CreateDirectory(gitDirectory);
 
-        if (includeCommonDirectory)
-        {
-            string relativeCommonDirectory = Path.GetRelativePath(gitDirectory, commonGitDirectory);
-            File.WriteAllText(
-                Path.Combine(gitDirectory, "commondir"),
-                relativeCommonDirectory + "\n"
-            );
-        }
+        string relativeCommonDirectory = Path.GetRelativePath(gitDirectory, commonGitDirectory);
+        File.WriteAllText(Path.Combine(gitDirectory, "commondir"), relativeCommonDirectory + "\n");
 
         string configuredGitDirectory = useRelativeGitDirectory
             ? Path.GetRelativePath(projectRoot, gitDirectory)

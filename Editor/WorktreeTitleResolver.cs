@@ -107,6 +107,11 @@ internal static class WorktreeTitleResolver
             return null;
         }
 
+        if (text.Length <= MaximumDisplayTextElements)
+        {
+            return text;
+        }
+
         int[] textElementOffsets = ParseExtendedTextElementOffsets(text);
         if (textElementOffsets.Length <= MaximumDisplayTextElements)
         {
@@ -136,25 +141,16 @@ internal static class WorktreeTitleResolver
                 continue;
             }
 
-            if (char.IsHighSurrogate(character))
+            if (char.IsLowSurrogate(character))
             {
-                if (index + 1 >= value.Length || !char.IsLowSurrogate(value[index + 1]))
-                {
-                    continue;
-                }
-
-                if (hasPendingSpace)
-                {
-                    normalized.Append(' ');
-                    hasPendingSpace = false;
-                }
-
-                normalized.Append(character);
-                normalized.Append(value[++index]);
                 continue;
             }
 
-            if (char.IsLowSurrogate(character))
+            bool hasSurrogatePair = char.IsHighSurrogate(character);
+            if (
+                hasSurrogatePair
+                && (index + 1 >= value.Length || !char.IsLowSurrogate(value[index + 1]))
+            )
             {
                 continue;
             }
@@ -166,6 +162,10 @@ internal static class WorktreeTitleResolver
             }
 
             normalized.Append(character);
+            if (hasSurrogatePair)
+            {
+                normalized.Append(value[++index]);
+            }
         }
 
         if (normalized.Length == 0)
@@ -205,10 +205,10 @@ internal static class WorktreeTitleResolver
             }
 
             string gitEntryDirectory = Path.GetDirectoryName(gitEntryPath);
-            string resolvedGitDirectory = Path.IsPathRooted(configuredGitDirectory)
-                ? configuredGitDirectory
-                : Path.Combine(gitEntryDirectory, configuredGitDirectory);
-            resolvedGitDirectory = Path.GetFullPath(resolvedGitDirectory);
+            string resolvedGitDirectory = ResolveConfiguredPath(
+                gitEntryDirectory,
+                configuredGitDirectory
+            );
 
             if (!Directory.Exists(resolvedGitDirectory))
             {
@@ -228,10 +228,11 @@ internal static class WorktreeTitleResolver
                 return GitFileCheckoutKind.Unknown;
             }
 
-            string resolvedCommonDirectory = Path.IsPathRooted(configuredCommonDirectory)
-                ? configuredCommonDirectory
-                : Path.Combine(resolvedGitDirectory, configuredCommonDirectory);
-            if (!Directory.Exists(Path.GetFullPath(resolvedCommonDirectory)))
+            string resolvedCommonDirectory = ResolveConfiguredPath(
+                resolvedGitDirectory,
+                configuredCommonDirectory
+            );
+            if (!Directory.Exists(resolvedCommonDirectory))
             {
                 return GitFileCheckoutKind.Unknown;
             }
@@ -243,6 +244,14 @@ internal static class WorktreeTitleResolver
         {
             return GitFileCheckoutKind.Unknown;
         }
+    }
+
+    private static string ResolveConfiguredPath(string baseDirectory, string configuredPath)
+    {
+        string path = Path.IsPathRooted(configuredPath)
+            ? configuredPath
+            : Path.Combine(baseDirectory, configuredPath);
+        return Path.GetFullPath(path);
     }
 
     private static string ResolveCodexWorktreeId(string projectRoot, string codexHome)
@@ -309,14 +318,8 @@ internal static class WorktreeTitleResolver
             }
 
             string latestTaskName = null;
-            bool foundMatchingEntry = false;
 
-            using var stream = new FileStream(
-                sessionIndexPath,
-                FileMode.Open,
-                FileAccess.Read,
-                FileShare.ReadWrite | FileShare.Delete
-            );
+            using var stream = OpenSharedTextFile(sessionIndexPath);
             using var reader = new StreamReader(stream, Encoding.UTF8, true);
 
             while (reader.ReadLine() is { } line)
@@ -336,11 +339,10 @@ internal static class WorktreeTitleResolver
                     continue;
                 }
 
-                foundMatchingEntry = true;
                 latestTaskName = entry.thread_name;
             }
 
-            return foundMatchingEntry ? NormalizeTaskName(latestTaskName) : null;
+            return NormalizeTaskName(latestTaskName);
         }
         catch (Exception)
         {
@@ -387,14 +389,19 @@ internal static class WorktreeTitleResolver
 
     private static string ReadSharedTextFile(string path)
     {
-        using var stream = new FileStream(
+        using var stream = OpenSharedTextFile(path);
+        using var reader = new StreamReader(stream, Encoding.UTF8, true);
+        return reader.ReadToEnd();
+    }
+
+    private static FileStream OpenSharedTextFile(string path)
+    {
+        return new FileStream(
             path,
             FileMode.Open,
             FileAccess.Read,
             FileShare.ReadWrite | FileShare.Delete
         );
-        using var reader = new StreamReader(stream, Encoding.UTF8, true);
-        return reader.ReadToEnd();
     }
 
     private static int[] ParseExtendedTextElementOffsets(string text)
@@ -427,8 +434,9 @@ internal static class WorktreeTitleResolver
 
             while (elementIndex < baseOffsets.Length)
             {
-                int codePoint = GetCodePointAt(text, baseOffsets[elementIndex]);
-                if (IsExtendedElementContinuation(codePoint))
+                int elementOffset = baseOffsets[elementIndex];
+                int codePoint = GetCodePointAt(text, elementOffset);
+                if (IsExtendedElementContinuation(text, elementOffset, codePoint))
                 {
                     elementIndex++;
                     continue;
@@ -458,12 +466,9 @@ internal static class WorktreeTitleResolver
         return extendedOffsets.ToArray();
     }
 
-    private static bool IsExtendedElementContinuation(int codePoint)
+    private static bool IsExtendedElementContinuation(string text, int offset, int codePoint)
     {
-        UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(
-            char.ConvertFromUtf32(codePoint),
-            0
-        );
+        UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(text, offset);
         return category == UnicodeCategory.NonSpacingMark
             || category == UnicodeCategory.SpacingCombiningMark
             || category == UnicodeCategory.EnclosingMark
