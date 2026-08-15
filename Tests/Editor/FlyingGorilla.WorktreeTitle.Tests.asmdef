@@ -1,0 +1,22 @@
+{
+  "name": "FlyingGorilla.WorktreeTitle.Tests",
+  "rootNamespace": "",
+  "references": [
+    "FlyingGorilla.WorktreeTitle.Editor"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "isTestAssembly": true
+}

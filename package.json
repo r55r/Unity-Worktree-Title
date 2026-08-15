@@ -1,0 +1,21 @@
+{
+  "name": "com.flying-gorilla-studios.worktree-title",
+  "version": "0.1.0",
+  "displayName": "Unity Worktree Title",
+  "description": "Show the current Git worktree and best-effort Codex task name in the Unity Editor window title.",
+  "unity": "2023.2",
+  "license": "MIT",
+  "keywords": [
+    "editor",
+    "git",
+    "worktree",
+    "codex",
+    "productivity"
+  ],
+  "author": {
+    "name": "Flying Gorilla Studios"
+  },
+  "dependencies": {
+    "com.unity.modules.jsonserialize": "1.0.0"
+  }
+}
