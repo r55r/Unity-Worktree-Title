@@ -2,6 +2,12 @@
 
 All notable changes to this package will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- Detect the containing Git checkout when the Unity project is inside a monorepo subdirectory.
+
 ## [0.1.1] - 2026-08-15
 
 ### Changed
