@@ -6,13 +6,14 @@
 
 ## 判定順
 
-1. project rootに `.git` directoryがあればprimary checkoutとして `[main]` を表示します。
-2. `.git` fileの `gitdir:` を解決します。有効な `commondir` があればlinked worktreeとして扱い、`commondir` がない有効なGit metadata directoryはprimary checkoutとして `[main]` を表示します。
-3. project rootが `<CODEX_HOME>/worktrees/<id>/...` にあればCodex worktree IDを表示します。
-4. Codex worktreeでなければproject rootのfolder名をworktree名として表示します。
-5. Git状態を安全に識別できなければUnityの既定タイトルを維持します。
+1. project rootから祖先方向へ最も近い `.git` を探し、そのdirectoryをcheckout rootとして扱います。
+2. `.git` directoryがあればprimary checkoutとして `[main]` を表示します。
+3. `.git` fileの `gitdir:` を解決します。有効な `commondir` があればlinked worktreeとして扱い、`commondir` がない有効なGit metadata directoryはprimary checkoutとして `[main]` を表示します。
+4. checkout rootが `<CODEX_HOME>/worktrees/<id>/...` にあればCodex worktree IDを表示します。
+5. Codex worktreeでなければcheckout rootのfolder名をworktree名として表示します。
+6. Git状態を安全に識別できなければUnityの既定タイトルを維持します。
 
-`.git` のrelative pathはproject rootを基準に、`commondir` のrelative pathは解決済みGit metadata directoryを基準に処理します。Git内部のmetadata folder名は表示名に使用しません。
+`.git` のrelative pathはcheckout rootを基準に、`commondir` のrelative pathは解決済みGit metadata directoryを基準に処理します。Git内部のmetadata folder名は表示名に使用しません。Unity projectがmonorepoのサブディレクトリにある場合も、checkout rootを基準にworktreeを識別します。
 
 ## Codex task名
 

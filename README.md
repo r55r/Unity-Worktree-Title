@@ -34,6 +34,8 @@ Unity Package ManagerのGit URL、またはprojectの `Packages/manifest.json` �
 
 導入後の設定やRuntime componentはありません。Editor assemblyが自動で初期化されます。
 
+Unity projectがmonorepoのサブディレクトリにある場合も、最も近い祖先の `.git` をcheckout rootとして自動検出します。
+
 ## Codex連携
 
 [CodexのGit worktrees](https://learn.chatgpt.com/docs/environments/git-worktrees)では、worktreeごとに独立したtaskを割り当てられます。このpackageは、その対応を次のローカルファイルからbest-effortで解決します。

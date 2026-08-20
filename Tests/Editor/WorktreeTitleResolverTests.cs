@@ -39,6 +39,23 @@ public sealed class WorktreeTitleResolverTests
     }
 
     [Test]
+    public void Resolve_WhenPrimaryCheckoutContainsProjectInSubdirectory_ReturnsMainIdentifier()
+    {
+        string projectRoot = environment.CreatePrimaryMonorepoCheckout(
+            "PrimaryRepository",
+            "UnityProject"
+        );
+
+        WorktreeTitleSnapshot result = WorktreeTitleResolver.Resolve(
+            projectRoot,
+            environment.CodexHome
+        );
+
+        Assert.That(result.DisplayText, Is.EqualTo("main"));
+        Assert.That(result.SessionIndexPath, Is.Null);
+    }
+
+    [Test]
     public void Resolve_WhenCodexLinkedWorktreeHasTask_ReturnsIdAndTaskName()
     {
         LinkedWorktreeFixture worktree = environment.CreateCodexLinkedWorktree("c0de");
@@ -57,11 +74,49 @@ public sealed class WorktreeTitleResolverTests
     }
 
     [Test]
+    public void Resolve_WhenCodexMonorepoContainsProjectInSubdirectory_ReturnsIdAndTaskName()
+    {
+        LinkedWorktreeFixture worktree = environment.CreateCodexLinkedMonorepoWorktree(
+            "c0de",
+            "UnityProject"
+        );
+        environment.WriteThreadMetadata(worktree.GitDirectory, "thread-monorepo");
+        environment.WriteSessionIndex(
+            "{\"id\":\"thread-monorepo\",\"thread_name\":\"Support monorepo\"}"
+        );
+
+        WorktreeTitleSnapshot result = WorktreeTitleResolver.Resolve(
+            worktree.ProjectRoot,
+            environment.CodexHome
+        );
+
+        Assert.That(result.DisplayText, Is.EqualTo("c0de · Support monorepo"));
+        Assert.That(result.SessionIndexPath, Is.EqualTo(environment.SessionIndexPath));
+    }
+
+    [Test]
     public void Resolve_WhenNamedWorktreeUsesRelativeGitDirectory_ReturnsFolderName()
     {
         LinkedWorktreeFixture worktree = environment.CreateNamedLinkedWorktree(
             "feature-shop",
             true
+        );
+
+        WorktreeTitleSnapshot result = WorktreeTitleResolver.Resolve(
+            worktree.ProjectRoot,
+            environment.CodexHome
+        );
+
+        Assert.That(result.DisplayText, Is.EqualTo("feature-shop"));
+        Assert.That(result.SessionIndexPath, Is.Null);
+    }
+
+    [Test]
+    public void Resolve_WhenNamedMonorepoContainsProjectInSubdirectory_ReturnsWorktreeFolderName()
+    {
+        LinkedWorktreeFixture worktree = environment.CreateNamedLinkedMonorepoWorktree(
+            "feature-shop",
+            "UnityProject"
         );
 
         WorktreeTitleSnapshot result = WorktreeTitleResolver.Resolve(

@@ -32,6 +32,15 @@ internal sealed class WorktreeTitleTestEnvironment : IDisposable
         return projectRoot;
     }
 
+    public string CreatePrimaryMonorepoCheckout(string folderName, string projectRelativePath)
+    {
+        string checkoutRoot = Path.Combine(RootPath, folderName);
+        string projectRoot = Path.Combine(checkoutRoot, projectRelativePath);
+        Directory.CreateDirectory(Path.Combine(checkoutRoot, ".git"));
+        Directory.CreateDirectory(projectRoot);
+        return projectRoot;
+    }
+
     public LinkedWorktreeFixture CreateNamedLinkedWorktree(
         string folderName,
         bool useRelativeGitDirectory
@@ -48,6 +57,34 @@ internal sealed class WorktreeTitleTestEnvironment : IDisposable
     {
         string projectRoot = Path.Combine(CodexHome, "worktrees", worktreeId, "SampleProject");
         return CreateLinkedWorktree(projectRoot, $"codex-{worktreeId}", useRelativeGitDirectory);
+    }
+
+    public LinkedWorktreeFixture CreateCodexLinkedMonorepoWorktree(
+        string worktreeId,
+        string projectRelativePath
+    )
+    {
+        string checkoutRoot = Path.Combine(CodexHome, "worktrees", worktreeId, "Repository");
+        return CreateLinkedWorktree(
+            checkoutRoot,
+            $"codex-{worktreeId}",
+            false,
+            projectRelativePath
+        );
+    }
+
+    public LinkedWorktreeFixture CreateNamedLinkedMonorepoWorktree(
+        string folderName,
+        string projectRelativePath
+    )
+    {
+        string checkoutRoot = Path.Combine(RootPath, folderName);
+        return CreateLinkedWorktree(
+            checkoutRoot,
+            folderName,
+            false,
+            projectRelativePath
+        );
     }
 
     public string CreateCheckoutWithSeparateGitDirectory(string folderName)
@@ -89,9 +126,14 @@ internal sealed class WorktreeTitleTestEnvironment : IDisposable
     private LinkedWorktreeFixture CreateLinkedWorktree(
         string projectRoot,
         string metadataName,
-        bool useRelativeGitDirectory
+        bool useRelativeGitDirectory,
+        string projectRelativePath = null
     )
     {
+        string checkoutRoot = projectRoot;
+        projectRoot = string.IsNullOrEmpty(projectRelativePath)
+            ? checkoutRoot
+            : Path.Combine(checkoutRoot, projectRelativePath);
         string commonGitDirectory = Path.Combine(RootPath, "repository", ".git");
         string gitDirectory = Path.Combine(commonGitDirectory, "worktrees", metadataName);
         Directory.CreateDirectory(projectRoot);
@@ -101,9 +143,12 @@ internal sealed class WorktreeTitleTestEnvironment : IDisposable
         File.WriteAllText(Path.Combine(gitDirectory, "commondir"), relativeCommonDirectory + "\n");
 
         string configuredGitDirectory = useRelativeGitDirectory
-            ? Path.GetRelativePath(projectRoot, gitDirectory)
+            ? Path.GetRelativePath(checkoutRoot, gitDirectory)
             : gitDirectory;
-        File.WriteAllText(Path.Combine(projectRoot, ".git"), $"gitdir: {configuredGitDirectory}\n");
+        File.WriteAllText(
+            Path.Combine(checkoutRoot, ".git"),
+            $"gitdir: {configuredGitDirectory}\n"
+        );
 
         return new LinkedWorktreeFixture(projectRoot, gitDirectory);
     }

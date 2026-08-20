@@ -1,5 +1,5 @@
 /*
- * project root の Git worktree と Codex metadata を読み、Editor title 用の表示値へ変換する。
+ * project root を含む Git worktree と Codex metadata を読み、Editor title 用の表示値へ変換する。
  * Codex のローカル形式は非公開なので、すべての読み取り失敗を通常のworktree表示へ閉じ込める。
  */
 
@@ -24,16 +24,21 @@ internal static class WorktreeTitleResolver
             }
 
             string normalizedProjectRoot = Path.GetFullPath(projectRoot);
-            string gitEntryPath = Path.Combine(normalizedProjectRoot, ".git");
+            if (
+                !Directory.Exists(normalizedProjectRoot)
+                || !TryResolveGitEntry(
+                    normalizedProjectRoot,
+                    out string checkoutRoot,
+                    out string gitEntryPath
+                )
+            )
+            {
+                return WorktreeTitleSnapshot.Empty;
+            }
 
             if (Directory.Exists(gitEntryPath))
             {
                 return new WorktreeTitleSnapshot("main", null);
-            }
-
-            if (!File.Exists(gitEntryPath))
-            {
-                return WorktreeTitleSnapshot.Empty;
             }
 
             GitFileCheckoutKind checkoutKind = ResolveGitFileCheckout(
@@ -51,14 +56,14 @@ internal static class WorktreeTitleResolver
             }
 
             string worktreeFolderName = SanitizeDisplayText(
-                Path.GetFileName(normalizedProjectRoot.TrimEnd(PathSeparators))
+                Path.GetFileName(checkoutRoot.TrimEnd(PathSeparators))
             );
             if (string.IsNullOrEmpty(worktreeFolderName))
             {
                 return WorktreeTitleSnapshot.Empty;
             }
 
-            string codexWorktreeId = ResolveCodexWorktreeId(normalizedProjectRoot, codexHome);
+            string codexWorktreeId = ResolveCodexWorktreeId(checkoutRoot, codexHome);
             if (string.IsNullOrEmpty(codexWorktreeId))
             {
                 return new WorktreeTitleSnapshot(worktreeFolderName, null);
@@ -174,6 +179,35 @@ internal static class WorktreeTitleResolver
         }
 
         return normalized.ToString();
+    }
+
+    private static bool TryResolveGitEntry(
+        string projectRoot,
+        out string checkoutRoot,
+        out string gitEntryPath
+    )
+    {
+        checkoutRoot = null;
+        gitEntryPath = null;
+
+        for (
+            var directory = new DirectoryInfo(projectRoot);
+            directory != null;
+            directory = directory.Parent
+        )
+        {
+            string candidatePath = Path.Combine(directory.FullName, ".git");
+            if (!Directory.Exists(candidatePath) && !File.Exists(candidatePath))
+            {
+                continue;
+            }
+
+            checkoutRoot = directory.FullName;
+            gitEntryPath = candidatePath;
+            return true;
+        }
+
+        return false;
     }
 
     private static GitFileCheckoutKind ResolveGitFileCheckout(
