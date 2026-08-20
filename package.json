@@ -1,6 +1,6 @@
 {
   "name": "com.flying-gorilla-studios.worktree-title",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "displayName": "Unity Worktree Title",
   "description": "Show the current Git worktree and best-effort Codex task name in the Unity Editor window title.",
   "unity": "2023.2",
